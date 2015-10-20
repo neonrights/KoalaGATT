@@ -1,0 +1,140 @@
+KoalaGATT Documentation
+Last updated 17th August 2015
+
+Installation:
+    KoalaGATT requires the installation of GATTTool in order to work. GATTTool comes with
+    Bluez, the linux stack for BLE. Simply install Bluez and you should be good.
+
+What KoalaGATT is and is not:
+    KoalaGATT is a Python library built off of Bluez GATTTool commands. In its current state
+    KoalaGATT does not support a continuous connection to a Koala device. Rather each method
+    establishes a connection with the device and queries it for the necessary information.
+    This is due to the nature of GATTTool. Although GATTTool does support a continuous
+    connection, (interactive mode) there does not seem to be existing commands that allow
+    for recieving notifications or indications. Since all accelerometer and gyroscope data
+    is recieved through notifications, interactive mode is essentially useless for Koalas.
+    This is why KoalaGATT currently does not have any methods that write to characteristics,
+    since anything written will be erased since the connection will be terminated once the
+    method finishes executing.
+
+Documentation:
+    Constants:
+	MOTION_SERVICE: the UUID of the motion service
+
+	MOTION_MEASUREMENT_CHARACTERISTIC: the UUID of the measurement characteristic. This
+	characteristic returns the raw measurements of the gyroscope and accelerometer.
+
+	MOTION_PARAM_CHARACTERISTIC: the UUID of the motion parameter characteristic.
+
+    The Koala class:
+	Constructor:
+	    Koala(addr):
+		Initializes the Koala class. Takes in the Koala's MAC address as a string
+		in the form of 6 hex digits separated by colons (xx:xx:xx:xx:xx:xx). Throws
+		an exception if the MAC address is improperly formatted. Initialization
+		simply stores the address, it does not connect the device.
+
+	Instance Methods:
+	    getServices(uuid=None):
+		returns all services available for the Koala device. Returns their UUID,
+		start, and end handles. If a UUID is specified, it returns the start and end
+		handles of that service. Results are returned as a dictionary with the UUID
+		as the key and the handles as hex strings in an array. UUID can be input as
+		a shortened four character hex string, or full 16 character hex string.
+
+	    getCharacteristics(startHnd=None, endHnd=None):
+		Finds all characteristics, returning their UUID's along with their handles.
+		If a start and end handle are specified, it returns all characteristics in
+		that range. Start and end handles should be given as hex strings in the
+		range of 0x1 to 0xFFFFFF inclusive. Results are returned as a dictionary
+		with the UUID as the key, and the handle, character handle, and properties
+		of the characteristic as hex strings in an array in that order.
+
+	    getServiceCharacteristics(uuid):
+		Finds all characteristics under a service specified by a UUID. The UUID 
+		should be input as an 18 character hex string. Results are returned as a
+		dictionary with the UUID as the key, and the handle, character handle, and
+		properties of the characteristic as hex strings in an array in that order.
+
+	    getCharacteristicsByUUID(uuid):
+		Finds all characteristics specified by a UUID. The UUID can be input as a
+		shortened four character hex string, or full 16 character hex string.
+		Results are returned as a dictionary with the UUID as the key, and the
+		handle, character handle, and properties of the characteristic as hex strings
+		in an array in that order.
+
+	    getCharacteristicsByHandle(handle):
+		Finds all characteristics specified by a handle. The handle should be given
+		as a hex string in the range of 0x1 to 0xFFFFFF inclusive. Results are
+		returned as a dictionary with the UUID as the key, and the handle, character
+		handle, and properties of the characteristic as hex strings in an array in
+		that order. In order to get a characteristic by its handle, use its
+		characteristic handle.
+
+	    readCharacteristicByUUID(uuid):
+		Returns the values stored in a characteristic specified by a UUID, if the
+		characteristic supports reading. The UUID should be input as a 16 character
+		hex string.
+
+	    readCharacteristicByHandle(handle):
+		Returns the values stored in a characteristic specified by a handle, if the
+		characteristic supports reading. The handle should be given as a hex string
+		in the range of 0x1 to 0xFFFFFF inclusive. In order to get a characteristic
+		by its handle, use its characteristic handle.
+
+	    getServiceCCCDs(uuid):
+		Returns the handles for a Service's CCCDs (Client Characteristic
+		Configuration Descriptors) specified by a UUID. The UUID should be input as
+		a 16 character hex string. A service's CCCDs are used to enable or disable
+		notifications and indications.
+
+	    NOTE: GATTTool does not provide an easy command to determine a characteristic's
+	    CCCD handle
+. Thus these methods are the most expensive since they require
+	    calling multiple other methods. It is easier to determine what handle control
+	    which characteristic beforehand and use that
+ to enable notifications. For
+	    similar reasons the listenForNotifications methods are also expensive. As such
+	    another method that takes in the CCCD handle directly is provided and is much
+	    faster.
+ In order to determine a list of potential CCCD handles, simply use
+	    getServiceCCCDs and input
+ the service UUID that the characteristic is under. The
+	    correct CCCD handle should be a value
+ one above the characteristic handle. If
+	    there is no such handle (aka the hande one above points towards the next
+	    characteristic), then that indicates that the
+ characteristic probably does not
+	    support notifications and indications.
+
+	    getCharacteristicCCCDByUUID(uuid):
+		Returns CCCD handle of a characteristic from a specified UUID. The UUID
+		should be input as a 16 character hex string.
+
+	    getCharacteristicCCCDByHandle(handle):
+		Returns CCCD handle of a characteristic from a specified handle. The handle
+		should be given as a hex string in the rnage of 0x1 to 0xFFFFFF inclusive.
+
+	    listenForNotificationsByUUID(uuid, time):
+		Returns notification values of a characteristic specified by a UUID for a
+		period of time. The UUID should be input as a 16 character hex string. Time
+		is measured in seconds. Results are returned as an array of each
+		notification recieved in the time period by the characteristic. Each
+		notification in the array is returned as an array with each index containing
+		a hex value.
+
+	    listenForNotificationsByHandle(handle, time):
+		Returns notification values of a characteristic specified by a handle for a
+		period of time. The handle should be given as a hex string in the range of
+		0x1 and 0xFFFFFF inclusive. Time is measured in seconds. Results are
+		returned as an array of each notification recieved in the time period by the
+		characteristic. Each notification in the array is returned as an array with
+		each index containing a hex value.
+
+	    listenForNofiticationsByCCCD(cccd, time):
+		Returns notification values of a characteristic specified by its CCCD for a
+		period of time. The CCCD should be input as a 16 character hex string. Time
+		is measured in seconds. Results are returned as an array of each
+		notification recieved in the time period by the characteristic. Each
+		notification in the array is returned as an array with each index containing
+		a hex value.
